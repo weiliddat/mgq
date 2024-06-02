@@ -1,13 +1,53 @@
-import { test } from 'node:test';
-import { strictEqual } from 'node:assert';
+import { MongoClient, Collection } from 'mongodb';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import { test, before, after, beforeEach } from 'node:test';
+import { deepStrictEqual } from 'node:assert';
 import { compile } from '../src/compiler';
+import { TestCase } from '../src/types';
 
-test('compile returns function that takes a value and returns a boolean', () => {
-  const filter = compile({});
+let mongod: MongoMemoryServer;
+let mongo: MongoClient;
+let collection: Collection;
 
-  strictEqual(typeof filter, 'function');
+before(async () => {
+  mongod = await MongoMemoryServer.create();
+  const uri = mongod.getUri();
+  mongo = new MongoClient(uri, { forceServerObjectId: true });
+  await mongo.connect();
+  const db = mongo.db('test');
+  collection = db.collection('test');
+});
 
-  const output = filter({});
+after(async () => {
+  await mongo.close();
+  await mongod.stop();
+});
 
-  strictEqual(typeof output, 'boolean');
+beforeEach(async () => {
+  await collection.deleteMany();
+});
+
+test('$eq', async (t) => {
+  await t.test('implict equality with string opvalue', async (t) => {
+    const testCases: TestCase[] = [
+      {
+        filter: { foo: 'bar' },
+        input: [{ foo: 'bar' }, {}, { foo: 'baz' }, { foo: { foo: 'bar' } }, { foo: ['bar', 'baz'] }, { foo: ['baz'] }],
+        expected: [{ foo: 'bar' }, { foo: ['bar', 'baz'] }],
+      },
+    ];
+
+    for (const testCase of testCases) {
+      await t.test(async () => {
+        const filterFn = compile(testCase.filter);
+        const actual = testCase.input.filter(filterFn);
+
+        await collection.insertMany(testCase.input);
+        const mongoExpected = await collection.find(testCase.filter, { projection: { _id: 0 } }).toArray();
+
+        deepStrictEqual(actual, mongoExpected);
+        deepStrictEqual(actual, testCase.expected);
+      });
+    }
+  });
 });

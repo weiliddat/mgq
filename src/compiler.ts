@@ -1,13 +1,7 @@
-type OpValue = any;
-
-type Query = {
-  [path: string]: OpValue;
-};
-
-type Filter = (value: unknown) => boolean;
+import { Query, Filter } from './types';
 
 export function compile(_query: Query): Filter {
   return function () {
-    return true;
+    return false;
   };
 }

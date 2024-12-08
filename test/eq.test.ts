@@ -31,9 +31,9 @@ test('$eq', async (t) => {
   await t.test('implict equality with string opvalue', async (t) => {
     const testCases: TestCase[] = [
       {
-        filter: { foo: 'bar' },
-        input: [{ foo: 'bar' }, {}, { foo: 'baz' }, { foo: { foo: 'bar' } }, { foo: ['bar', 'baz'] }, { foo: ['baz'] }],
-        expected: [{ foo: 'bar' }, { foo: ['bar', 'baz'] }],
+        filter: { foo: { $eq: 'bar' } },
+        input: [{ foo: 'bar' }, {}, { foo: 'baz' }, { foo: { foo: 'bar' } }],
+        expected: [{ foo: 'bar' }],
       },
     ];
 

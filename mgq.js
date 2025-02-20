@@ -1,6 +1,7 @@
 //@ts-check
 
 import assert from "node:assert";
+import deepEqual from "fast-deep-equal";
 
 /**
  * mongo query as a predicate function
@@ -51,19 +52,11 @@ const condOps = new Set([
 // Set of query operators
 const queryOps = new Set(["$and", "$or", "$nor"]);
 
-export class Query {
-	constructor(query) {
-		this._query = query;
-	}
-
-	test(doc) {
-		return matchCond(this._query, doc);
-	}
-
-	validate() {
-		validate(this._query);
-		return this;
-	}
+export function Query(query) {
+	return {
+		test: (doc) => matchCond(query, doc),
+		validate: () => validate(query),
+	};
 }
 
 function matchCond(query, doc) {
@@ -205,7 +198,7 @@ function checkAllExp(expOrOv) {
 		expOrOv &&
 		typeof expOrOv === "object" &&
 		!Array.isArray(expOrOv) &&
-		!deepStrictEqual(expOrOv, {}) &&
+		!deepEqual(expOrOv, {}) &&
 		Object.keys(expOrOv).every((key) => condOps.has(key))
 	);
 }
@@ -325,7 +318,7 @@ function matchEq(doc, path, ov) {
 			}
 		}
 
-		return deepStrictEqual(doc, ov);
+		return deepEqual(doc, ov);
 	}
 
 	const key = path[0];
@@ -351,13 +344,4 @@ function matchEq(doc, path, ov) {
 	}
 
 	return false;
-}
-
-function deepStrictEqual(a, b) {
-	try {
-		assert.deepStrictEqual(a, b);
-		return true;
-	} catch {
-		return false;
-	}
 }

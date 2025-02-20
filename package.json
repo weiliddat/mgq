@@ -1,28 +1,24 @@
 {
   "name": "mgq",
-  "version": "0.0.0",
-  "description": "MongoDB queries compiled to javascript. Tiny, fast, easily debuggable.",
-  "main": "index.js",
+  "version": "1.0.0",
+  "description": "[MongoDB query](https://www.mongodb.com/docs/manual/reference/operator/query/) as a predicate function.",
+  "type": "module",
+  "exports": "./main.js",
   "scripts": {
-    "test": "npm run test:types && npm run test:unit",
-    "test:unit": "tsx --test",
-    "test:types": "tsc --noEmit"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [
-    "MongoDB",
-    "query",
-    "tiny"
-  ],
-  "author": "weiliddat <ongchiawei@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/weiliddat/mgq.git"
+  },
+  "keywords": [],
+  "author": "",
   "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/weiliddat/mgq/issues"
+  },
+  "homepage": "https://github.com/weiliddat/mgq#readme",
   "devDependencies": {
-    "@tsconfig/node-lts": "^22.0.1",
-    "@tsconfig/strictest": "^2.0.5",
-    "@types/node": "^22.10.1",
-    "mongodb": "^6.11.0",
-    "mongodb-memory-server": "^10.1.2",
-    "prettier": "^3.4.2",
-    "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "@biomejs/biome": "1.9.4"
   }
 }

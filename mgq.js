@@ -196,8 +196,7 @@ function validate(query) {
 function checkAllExp(expOrOv) {
 	return (
 		expOrOv &&
-		typeof expOrOv === "object" &&
-		!Array.isArray(expOrOv) &&
+		isPlainObject(expOrOv) &&
 		!deepEqual(expOrOv, {}) &&
 		Object.keys(expOrOv).every((key) => condOps.has(key))
 	);
@@ -218,16 +217,8 @@ function matchNor(doc, path, query) {
 	return true;
 }
 
-// function matchEq(doc, pathParts, query) {
-// 	return true;
-// }
-
 function matchNe(doc, pathParts, query) {
 	return !matchEq(doc, pathParts, query);
-}
-
-function matchGt(doc, pathParts, query) {
-	return true;
 }
 
 function matchGte(doc, pathParts, query) {
@@ -241,14 +232,6 @@ function matchLt(doc, pathParts, query) {
 function matchLte(doc, pathParts, query) {
 	return true;
 }
-
-// function matchIn(doc, pathParts, query) {
-// 	return true;
-// }
-
-// function matchNin(doc, pathParts, query) {
-// 	return true;
-// }
 
 function matchNot(doc, path, query) {
 	return !matchCond({ [path]: query }, doc);
@@ -403,4 +386,100 @@ function matchNin(doc, path, ov) {
 	}
 
 	return !matchIn(doc, path, ov);
+}
+
+/**
+ * Matches if the value at the given path is greater than the given value
+ * @param {any} doc - Document to check
+ * @param {string[]} path - Path to the value
+ * @param {any} ov - Value to match against
+ * @returns {boolean}
+ */
+function matchGt(doc, path, ov) {
+	if (path.length === 0) {
+		// Handle array of documents
+		if (Array.isArray(doc) && doc.some((d) => matchGt(d, path, ov))) {
+			return true;
+		}
+
+		// Handle array comparison
+		if (Array.isArray(doc) && Array.isArray(ov)) {
+			// In JavaScript, arrays can't be directly compared with > operator
+			// Compare elements one by one
+			for (let i = 0; i < Math.max(doc.length, ov.length); i++) {
+				if (i >= ov.length) return true;
+				if (i >= doc.length) return false;
+				if (doc[i] !== ov[i]) return doc[i] > ov[i];
+			}
+			return false;
+		}
+
+		// Handle object comparison
+		if (
+			typeof doc === "object" &&
+			doc !== null &&
+			typeof ov === "object" &&
+			ov !== null &&
+			!Array.isArray(doc) &&
+			!Array.isArray(ov)
+		) {
+			const docKeys = Object.keys(doc);
+			const ovKeys = Object.keys(ov);
+
+			for (let i = 0; i < Math.max(docKeys.length, ovKeys.length); i++) {
+				const docKey = docKeys[i];
+				const ovKey = ovKeys[i];
+
+				if (docKey === undefined) return false;
+				if (ovKey === undefined) return true;
+				if (docKey !== ovKey) return docKey > ovKey;
+				if (docKey === ovKey) {
+					if (doc[docKey] > ov[ovKey]) return true;
+					if (doc[docKey] < ov[ovKey]) return false;
+				}
+			}
+			return false;
+		}
+
+		// Handle number comparison
+		if (typeof doc === "number" && typeof ov === "number") {
+			return doc > ov;
+		}
+
+		// Handle string comparison
+		if (typeof doc === "string" && typeof ov === "string") {
+			return doc > ov;
+		}
+
+		return false;
+	}
+
+	const key = path[0];
+	const rest = path.slice(1);
+
+	if (isPlainObject(doc) && key in doc) {
+		return matchGt(doc[key], rest, ov);
+	}
+
+	if (Array.isArray(doc) && /^\d+$/.test(key)) {
+		const idx = Number.parseInt(key);
+		if (idx < doc.length) {
+			return matchGt(doc[idx], rest, ov);
+		}
+	}
+
+	if (Array.isArray(doc)) {
+		return doc.some((d) => matchGt(d, path, ov));
+	}
+
+	return false;
+}
+
+/**
+ * Checks if the given value is a plain object (not null, not an array)
+ * @param {any} v - The value to check
+ * @returns {v is Record<any, any>}
+ */
+function isPlainObject(v) {
+	return typeof v === "object" && v !== null && !Array.isArray(v);
 }

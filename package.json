@@ -1,24 +1,27 @@
 {
-  "name": "mgq",
-  "version": "1.0.0",
-  "description": "[MongoDB query](https://www.mongodb.com/docs/manual/reference/operator/query/) as a predicate function.",
-  "type": "module",
-  "exports": "./main.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/weiliddat/mgq.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/weiliddat/mgq/issues"
-  },
-  "homepage": "https://github.com/weiliddat/mgq#readme",
-  "devDependencies": {
-    "@biomejs/biome": "1.9.4"
-  }
+	"name": "mgq",
+	"version": "1.0.0",
+	"description": "[MongoDB query](https://www.mongodb.com/docs/manual/reference/operator/query/) as a predicate function.",
+	"type": "module",
+	"exports": {
+		"./mgq.js": "./mgq.js"
+	},
+	"scripts": {
+		"test": "node --test"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/weiliddat/mgq.git"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/weiliddat/mgq/issues"
+	},
+	"homepage": "https://github.com/weiliddat/mgq#readme",
+	"devDependencies": {
+		"@biomejs/biome": "1.9.4",
+		"@types/node": "^18.19.76"
+	}
 }

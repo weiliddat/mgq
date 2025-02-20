@@ -223,7 +223,7 @@ function matchNor(doc, path, query) {
 // }
 
 function matchNe(doc, pathParts, query) {
-	return true;
+	return !matchEq(doc, pathParts, query);
 }
 
 function matchGt(doc, pathParts, query) {
@@ -242,16 +242,16 @@ function matchLte(doc, pathParts, query) {
 	return true;
 }
 
-function matchIn(doc, pathParts, query) {
-	return true;
-}
+// function matchIn(doc, pathParts, query) {
+// 	return true;
+// }
 
-function matchNin(doc, pathParts, query) {
-	return true;
-}
+// function matchNin(doc, pathParts, query) {
+// 	return true;
+// }
 
 function matchNot(doc, path, query) {
-	return true;
+	return !matchCond({ [path]: query }, doc);
 }
 
 function matchRegex(doc, pathParts, query) {
@@ -344,4 +344,63 @@ function matchEq(doc, path, ov) {
 	}
 
 	return false;
+}
+
+/**
+ * Matches if the value at the given path is in the array of values
+ * @param {any} doc - Document to check
+ * @param {string[]} path - Path to the value
+ * @param {any[]} ov - Array of values to match against
+ * @returns {boolean}
+ */
+function matchIn(doc, path, ov) {
+	if (!validateInNin(ov)) {
+		return false;
+	}
+
+	if (path.length === 0) {
+		if (Array.isArray(doc) && doc.some((d) => matchIn(d, path, ov))) {
+			return true;
+		}
+
+		return ov.some((o) => matchEq(doc, path, o));
+	}
+
+	const key = path[0];
+	const rest = path.slice(1);
+
+	if (typeof doc === "object" && doc !== null && key in doc) {
+		return matchIn(doc[key], rest, ov);
+	}
+
+	if (Array.isArray(doc)) {
+		if (/^\d+$/.test(key)) {
+			const idx = Number.parseInt(key);
+			if (idx < doc.length) {
+				return matchIn(doc[idx], rest, ov);
+			}
+		}
+		return doc.some((d) => matchIn(d, path, ov));
+	}
+
+	if (ov.includes(null) || ov.includes(undefined)) {
+		return true;
+	}
+
+	return false;
+}
+
+/**
+ * Matches if the value at the given path is not in the array of values
+ * @param {any} doc - Document to check
+ * @param {string[]} path - Path to the value
+ * @param {any[]} ov - Array of values to match against
+ * @returns {boolean}
+ */
+function matchNin(doc, path, ov) {
+	if (!validateInNin(ov)) {
+		return false;
+	}
+
+	return !matchIn(doc, path, ov);
 }

@@ -1,7 +1,16 @@
-export async function getMongoResults(query, input) {
-	// Implementation to run query against MongoDB
-	// This would connect to a test MongoDB instance and run the query
-	return []; // For now, return the expected results
+import { Collection } from "mongodb";
+
+/**
+ * Get the results of a query from a MongoDB collection
+ * @param {Collection} collection - The collection to run the query on
+ * @param {Object} query - The query to run
+ * @param {Object[]} input - The input documents to insert into the collection
+ * @returns {Promise<Object[]>} The results of the query
+ */
+export async function getMongoResults(collection, query, input) {
+	await collection.insertMany(structuredClone(input));
+	const results = await collection.find(query).project({ _id: 0 }).toArray();
+	return results;
 }
 
 export function getFilterResults(testFn, input) {

@@ -7,53 +7,36 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 
 const testCases = [
 	{
-		name: "explicit $eq",
-		query: { foo: { $eq: "bar" } },
+		name: "$ne str",
+		query: { foo: { $ne: "bar" } },
 		input: [{ foo: "bar" }, {}, { foo: "baz" }, { foo: { foo: "bar" } }],
-		expected: [{ foo: "bar" }],
+		expected: [{}, { foo: "baz" }, { foo: { foo: "bar" } }],
 	},
 	{
-		name: "implicit $eq",
-		query: { foo: "bar" },
-		input: [{ foo: "bar" }, {}, { foo: "baz" }, { foo: { foo: "bar" } }],
-		expected: [{ foo: "bar" }],
-	},
-	{
-		name: "implicit $eq, full object match",
-		query: { foo: { bar: 1, " $size": 2 } },
+		name: "$ne, full object match",
+		query: { foo: { $ne: { bar: 1, " $size": 2 } } },
 		input: [
 			{ foo: "bar" },
 			{},
 			{ foo: [{ bar: 1 }, { bar: 2 }] },
 			{ foo: { bar: 1, " $size": 2 } },
 		],
-		expected: [{ foo: { bar: 1, " $size": 2 } }],
+		expected: [{ foo: "bar" }, {}, { foo: [{ bar: 1 }, { bar: 2 }] }],
 	},
 	{
-		name: "explicit $eq, full object match",
-		query: { foo: { $eq: { bar: 1, " $size": 2 } } },
-		input: [
-			{ foo: "bar" },
-			{},
-			{ foo: [{ bar: 1 }, { bar: 2 }] },
-			{ foo: { bar: 1, " $size": 2 } },
-		],
-		expected: [{ foo: { bar: 1, " $size": 2 } }],
-	},
-	{
-		name: "nested object path, explicit $eq",
-		query: { "foo.bar": { $eq: "baz" } },
+		name: "nested object path, $ne str",
+		query: { "foo.bar": { $ne: "baz" } },
 		input: [
 			{ foo: { bar: "baz" } },
 			{},
 			{ foo: "bar" },
 			{ foo: { bar: "qux" } },
 		],
-		expected: [{ foo: { bar: "baz" } }],
+		expected: [{}, { foo: "bar" }, { foo: { bar: "qux" } }],
 	},
 	{
-		name: "nested object path, explicit $eq empty ov",
-		query: { "foo.bar": {} },
+		name: "nested object path, explicit $ne empty ov",
+		query: { "foo.bar": { $ne: {} } },
 		input: [
 			{ foo: { bar: {} } },
 			{ foo: { bar: "baz" } },
@@ -61,34 +44,33 @@ const testCases = [
 			{ foo: "bar" },
 			{ foo: { bar: "qux" } },
 		],
-		expected: [{ foo: { bar: {} } }],
-	},
-	{
-		name: "nested object path, implicit $eq",
-		query: { "foo.bar": "baz" },
-		input: [
+		expected: [
 			{ foo: { bar: "baz" } },
 			{},
 			{ foo: "bar" },
 			{ foo: { bar: "qux" } },
 		],
-		expected: [{ foo: { bar: "baz" } }],
 	},
 	{
 		name: "nested object path, full object match",
-		query: { "foo.bar": { baz: "qux", $eq: "bar" } },
+		query: { "foo.bar": { $ne: { baz: "qux", $ne: "bar" } } },
 		input: [
-			{ foo: { bar: { baz: "qux", $eq: "bar" } } },
+			{ foo: { bar: { baz: "qux", $ne: "bar" } } },
 			{ foo: { bar: { baz: "qux", bla: "jaz" } } },
 			{},
 			{ foo: "bar" },
 			{ foo: { bar: "baz" } },
 		],
-		expected: [{ foo: { bar: { baz: "qux", $eq: "bar" } } }],
+		expected: [
+			{ foo: { bar: { baz: "qux", bla: "jaz" } } },
+			{},
+			{ foo: "bar" },
+			{ foo: { bar: "baz" } },
+		],
 	},
 	{
 		name: "nested object path, full object match",
-		query: { "foo.bar": { baz: "qux" } },
+		query: { "foo.bar": { $ne: { baz: "qux" } } },
 		input: [
 			{ foo: { bar: { baz: "qux" } } },
 			{ foo: { bar: { baz: "qux", bla: "jaz" } } },
@@ -96,11 +78,16 @@ const testCases = [
 			{ foo: "bar" },
 			{ foo: { bar: "baz" } },
 		],
-		expected: [{ foo: { bar: { baz: "qux" } } }],
+		expected: [
+			{ foo: { bar: { baz: "qux", bla: "jaz" } } },
+			{},
+			{ foo: "bar" },
+			{ foo: { bar: "baz" } },
+		],
 	},
 	{
-		name: "implicit $eq, object against null",
-		query: { "foo.bar": null },
+		name: "explicit $ne, object against null",
+		query: { "foo.bar": { $ne: null } },
 		input: [
 			{ foo: { bar: null } },
 			{ foo: { bar: "baz" } },
@@ -108,23 +95,11 @@ const testCases = [
 			{ foo: "bar" },
 			{},
 		],
-		expected: [{ foo: { bar: null } }, { foo: null }, { foo: "bar" }, {}],
-	},
-	{
-		name: "explicit $eq, object against null",
-		query: { "foo.bar": { $eq: null } },
-		input: [
-			{ foo: { bar: null } },
-			{ foo: { bar: "baz" } },
-			{ foo: null },
-			{ foo: "bar" },
-			{},
-		],
-		expected: [{ foo: { bar: null } }, { foo: null }, { foo: "bar" }, {}],
+		expected: [{ foo: { bar: "baz" } }],
 	},
 	{
 		name: "match against arrays on ov",
-		query: { "foo.bar": ["baz"] },
+		query: { "foo.bar": { $ne: ["baz"] } },
 		input: [
 			{ foo: { bar: "baz" } },
 			{ foo: { bar: ["baz"] } },
@@ -136,14 +111,16 @@ const testCases = [
 			{ foo: [{ bar: "qux" }] },
 		],
 		expected: [
-			{ foo: { bar: ["baz"] } },
-			{ foo: { bar: [["baz"]] } },
-			{ foo: { bar: ["baz", ["baz"]] } },
+			{ foo: { bar: "baz" } },
+			{ foo: { bar: ["baz", "bar"] } },
+			{},
+			{ foo: "bar" },
+			{ foo: [{ bar: "qux" }] },
 		],
 	},
 	{
 		name: "match against arrays on doc",
-		query: { "foo.bar": "baz" },
+		query: { "foo.bar": { $ne: "baz" } },
 		input: [
 			{ foo: { bar: ["bar"] } },
 			{ foo: { bar: ["baz", "bar"] } },
@@ -151,11 +128,16 @@ const testCases = [
 			{ foo: "bar" },
 			{ foo: [{ bar: "qux" }] },
 		],
-		expected: [{ foo: { bar: ["baz", "bar"] } }],
+		expected: [
+			{ foo: { bar: ["bar"] } },
+			{},
+			{ foo: "bar" },
+			{ foo: [{ bar: "qux" }] },
+		],
 	},
 	{
 		name: "unindexed nested object path with intermediate arrays on doc",
-		query: { "a.b.c.d": 1 },
+		query: { "a.b.c.d": { $ne: 1 } },
 		input: [
 			{ a: { b: { c: [{ d: [1] }] } } },
 			{ a: [{ b: [{ c: [{ d: 1 }] }] }] },
@@ -165,16 +147,11 @@ const testCases = [
 			{ a: {} },
 			{},
 		],
-		expected: [
-			{ a: { b: { c: [{ d: [1] }] } } },
-			{ a: [{ b: [{ c: [{ d: 1 }] }] }] },
-			{ a: [{ b: { c: [{ d: 1 }] } }] },
-			{ a: { b: { c: [null, { d: 1 }] } } },
-		],
+		expected: [{ a: [{ b: [{ c: [{ d: 2 }] }] }] }, { a: {} }, {}],
 	},
 	{
 		name: "unindexed nested object path against null",
-		query: { "foo.bar": null },
+		query: { "foo.bar": { $ne: null } },
 		input: [
 			{ foo: [{ bar: "baz" }] },
 			{},
@@ -182,11 +159,11 @@ const testCases = [
 			{ foo: { bar: null } },
 			{ foo: [{ bar: "qux" }] },
 		],
-		expected: [{}, { foo: "bar" }, { foo: { bar: null } }],
+		expected: [{ foo: [{ bar: "baz" }] }, { foo: [{ bar: "qux" }] }],
 	},
 	{
 		name: "indexed nested object path with intermediate arrays on doc",
-		query: { "foo.1.bar": "baz" },
+		query: { "foo.1.bar": { $ne: "baz" } },
 		input: [
 			{ foo: [{}, { bar: "baz" }] },
 			{ foo: [{ bar: "baz" }, {}] },
@@ -194,18 +171,29 @@ const testCases = [
 			{ foo: "bar" },
 			{ foo: [{ bar: "qux" }] },
 		],
-		expected: [{ foo: [{}, { bar: "baz" }] }],
+		expected: [
+			{ foo: [{ bar: "baz" }, {}] },
+			{},
+			{ foo: "bar" },
+			{ foo: [{ bar: "qux" }] },
+		],
 	},
 	{
 		name: "nested arrays on doc",
-		query: { "foo.bar.baz": "qux" },
+		query: { "foo.bar.baz": { $ne: "qux" } },
 		input: [
 			{ foo: [{ bar: [{ baz: "qux" }] }] },
+			{ foo: [{ bar: [{ baz: "jaz" }] }] },
 			{},
 			{ foo: "bar" },
 			{ foo: [{ bar: "baz" }] },
 		],
-		expected: [{ foo: [{ bar: [{ baz: "qux" }] }] }],
+		expected: [
+			{ foo: [{ bar: [{ baz: "jaz" }] }] },
+			{},
+			{ foo: "bar" },
+			{ foo: [{ bar: "baz" }] },
+		],
 	},
 ];
 
@@ -247,7 +235,7 @@ afterEach(async () => {
 	}
 });
 
-describe("Query $eq tests", async () => {
+describe("Query $ne tests", async () => {
 	for (const { name, query, input, expected } of testCases) {
 		await test(name, async () => {
 			const mongoExpected = await getMongoResults(collection, query, input);

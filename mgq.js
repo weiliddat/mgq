@@ -241,28 +241,6 @@ function matchNor(doc, path, query) {
 	return true;
 }
 
-/**
- * Matches if the value at the given path is not equal to the given value
- * @param {any} doc - Document to check
- * @param {string[]} pathParts - Path to the value
- * @param {any} query - Value to match against
- * @returns {boolean}
- */
-function matchNe(doc, pathParts, query) {
-	return !matchEq(doc, pathParts, query);
-}
-
-/**
- * Matches if the document does not match the given query
- * @param {any} doc - Document to check
- * @param {string} path - Path to the value
- * @param {any} query - Value to match against
- * @returns {boolean}
- */
-function matchNot(doc, path, query) {
-	return !matchCond({ [path]: query }, doc);
-}
-
 function matchRegex(doc, pathParts, query) {
 	return true;
 }
@@ -283,18 +261,38 @@ function matchSize(doc, pathParts, query) {
 	return true;
 }
 
+/**
+ * Validates query operators like $and, $or, $nor
+ * @param {any} query - The query to validate
+ * @returns {boolean}
+ */
 function validateQueryOps(query) {
 	return Array.isArray(query);
 }
 
+/**
+ * Validates $in $nin operators
+ * @param {any} value - The value to validate
+ * @returns {boolean}
+ */
 function validateInNin(value) {
 	return Array.isArray(value);
 }
 
+/**
+ * Validates $all operator
+ * @param {any} value - The value to validate
+ * @returns {boolean}
+ */
 function validateAll(value) {
 	return Array.isArray(value);
 }
 
+/**
+ * Validates $mod operator
+ * @param {any} value - The value to validate
+ * @returns {boolean}
+ */
 function validateMod(value) {
 	return (
 		Array.isArray(value) &&
@@ -304,6 +302,11 @@ function validateMod(value) {
 	);
 }
 
+/**
+ * Validates $size operator
+ * @param {any} value - The value to validate
+ * @returns {boolean}
+ */
 function validateSize(value) {
 	return typeof value === "number";
 }
@@ -318,7 +321,27 @@ function isPlainObject(v) {
 }
 
 /**
- * Matches equality condition for nested document traversal
+ * Checks if the given value is null or undefined
+ * @param {any} v - The value to check
+ * @returns {boolean}
+ */
+function isNil(v) {
+	return v === null || v === undefined;
+}
+
+/**
+ * Matches if the document does not match the given query
+ * @param {any} doc - Document to check
+ * @param {string} path - Path to the value
+ * @param {any} query - Value to match against
+ * @returns {boolean}
+ */
+function matchNot(doc, path, query) {
+	return !matchCond({ [path]: query }, doc);
+}
+
+/**
+ * Matches if the value at the given path is equal to the queried value
  * @param {any} doc - The document/value to check
  * @param {string[]} path - Array of path segments
  * @param {any} ov - The value to match against
@@ -365,7 +388,18 @@ function matchEq(doc, path, ov) {
 }
 
 /**
- * Matches if the value at the given path is in the array of values
+ * Matches if the value at the given path is not equal to the queried value
+ * @param {any} doc - Document to check
+ * @param {string[]} pathParts - Path to the value
+ * @param {any} query - Value to match against
+ * @returns {boolean}
+ */
+function matchNe(doc, pathParts, query) {
+	return !matchEq(doc, pathParts, query);
+}
+
+/**
+ * Matches if the value at the given path is in the array of queried values
  * @param {any} doc - Document to check
  * @param {string[]} path - Path to the value
  * @param {any[]} ov - Array of values to match against
@@ -409,7 +443,7 @@ function matchIn(doc, path, ov) {
 }
 
 /**
- * Matches if the value at the given path is not in the array of values
+ * Matches if the value at the given path is not in the array of queried values
  * @param {any} doc - Document to check
  * @param {string[]} path - Path to the value
  * @param {any[]} ov - Array of values to match against
@@ -424,7 +458,7 @@ function matchNin(doc, path, ov) {
 }
 
 /**
- * Matches if the value at the given path is greater than the given value
+ * Matches if the value at the given path is greater than the queried value
  * @param {any} doc - Document to check
  * @param {string[]} path - Path to the value
  * @param {any} ov - Value to match against
@@ -450,14 +484,7 @@ function matchGt(doc, path, ov) {
 		}
 
 		// Handle object comparison
-		if (
-			typeof doc === "object" &&
-			doc !== null &&
-			typeof ov === "object" &&
-			ov !== null &&
-			!Array.isArray(doc) &&
-			!Array.isArray(ov)
-		) {
+		if (isPlainObject(doc) && isPlainObject(ov)) {
 			const docKeys = Object.keys(doc);
 			const ovKeys = Object.keys(ov);
 
@@ -511,7 +538,7 @@ function matchGt(doc, path, ov) {
 }
 
 /**
- * Matches if the value at the given path is greater than or equal to the given value
+ * Matches if the value at the given path is greater than or equal to the queried value
  * @param {any} doc - Document to check
  * @param {string[]} path - Path to the value
  * @param {any} ov - Value to match against
@@ -537,14 +564,7 @@ function matchGte(doc, path, ov) {
 		}
 
 		// Handle object comparison
-		if (
-			typeof doc === "object" &&
-			doc !== null &&
-			typeof ov === "object" &&
-			ov !== null &&
-			!Array.isArray(doc) &&
-			!Array.isArray(ov)
-		) {
+		if (isPlainObject(doc) && isPlainObject(ov)) {
 			if (!Object.keys(doc).length && !Object.keys(ov).length) {
 				return true;
 			}
@@ -578,7 +598,7 @@ function matchGte(doc, path, ov) {
 		}
 
 		// Handle null comparison
-		if (doc === null && ov === null) {
+		if (isNil(doc) && isNil(ov)) {
 			return true;
 		}
 
@@ -607,7 +627,7 @@ function matchGte(doc, path, ov) {
 	}
 
 	// Handle null comparison
-	if (ov === null) {
+	if (isNil(ov)) {
 		return true;
 	}
 
@@ -615,7 +635,7 @@ function matchGte(doc, path, ov) {
 }
 
 /**
- * Matches if the value at the given path is less than the given value
+ * Matches if the value at the given path is less than the queried value
  * @param {any} doc - Document to check
  * @param {string[]} path - Path to the value
  * @param {any} ov - Value to match against
@@ -640,14 +660,7 @@ function matchLt(doc, path, ov) {
 		}
 
 		// Handle object comparison
-		if (
-			typeof doc === "object" &&
-			doc !== null &&
-			typeof ov === "object" &&
-			ov !== null &&
-			!Array.isArray(doc) &&
-			!Array.isArray(ov)
-		) {
+		if (isPlainObject(doc) && isPlainObject(ov)) {
 			if (Object.keys(doc).length === 0 && Object.keys(ov).length === 0) {
 				return false;
 			}
@@ -708,7 +721,7 @@ function matchLt(doc, path, ov) {
 }
 
 /**
- * Matches if the value at the given path is less than or equal to the given value
+ * Matches if the value at the given path is less than or equal to the queried value
  * @param {any} doc - Document to check
  * @param {string[]} path - Path to the value
  * @param {any} ov - Value to match against
@@ -733,14 +746,7 @@ function matchLte(doc, path, ov) {
 		}
 
 		// Handle object comparison
-		if (
-			typeof doc === "object" &&
-			doc !== null &&
-			typeof ov === "object" &&
-			ov !== null &&
-			!Array.isArray(doc) &&
-			!Array.isArray(ov)
-		) {
+		if (isPlainObject(doc) && isPlainObject(ov)) {
 			if (!Object.keys(doc).length && !Object.keys(ov).length) {
 				return true;
 			}
@@ -774,7 +780,7 @@ function matchLte(doc, path, ov) {
 		}
 
 		// Handle null comparison
-		if (doc === null && ov === null) {
+		if (isNil(doc) && isNil(ov)) {
 			return true;
 		}
 
@@ -802,7 +808,7 @@ function matchLte(doc, path, ov) {
 		return doc.some((d) => matchLte(d, path, ov));
 	}
 
-	if (ov === null) {
+	if (isNil(ov)) {
 		return true;
 	}
 

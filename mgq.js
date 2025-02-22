@@ -51,13 +51,34 @@ const condOps = new Set([
 // Set of query operators
 const queryOps = new Set(["$and", "$or", "$nor"]);
 
+/**
+ * Creates a new Query object
+ * @param {Record<string,any>} query - The query to match against
+ * @returns {Object}
+ */
 export function Query(query) {
 	return {
+		/**
+		 * Matches the given document against the query
+		 * @param {Record<string,any>} doc - The document to match against
+		 * @returns {boolean}
+		 */
 		test: (doc) => matchCond(query, doc),
+		/**
+		 * Validates the query
+		 * @throws {TypeError} if the query is invalid
+		 * @returns {boolean}
+		 */
 		validate: () => validate(query),
 	};
 }
 
+/**
+ * Matches the given query against the given document
+ * @param {Record<string,any>} query - The query to match against
+ * @param {Record<string,any>} doc - The document to match against
+ * @returns {boolean}
+ */
 function matchCond(query, doc) {
 	const results = [];
 

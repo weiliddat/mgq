@@ -229,17 +229,6 @@ function checkAllExp(expOrOv) {
 /**
  * stub undefined functions
  */
-function matchAnd(doc, path, query) {
-	return true;
-}
-
-function matchOr(doc, path, query) {
-	return true;
-}
-
-function matchNor(doc, path, query) {
-	return true;
-}
 
 function matchRegex(doc, pathParts, query) {
 	return true;
@@ -327,6 +316,51 @@ function isPlainObject(v) {
  */
 function isNil(v) {
 	return v === null || v === undefined;
+}
+
+/**
+ * Matches if the document matches all the given queries
+ * @param {any} doc - The document to match against
+ * @param {string} path - The path to match against
+ * @param {any} ov - The queries to match against
+ * @returns {boolean}
+ */
+function matchAnd(doc, path, ov) {
+	if (!validateQueryOps(ov)) {
+		return false;
+	}
+
+	return ov.every((cond) => matchCond(cond, doc));
+}
+
+/**
+ * Matches if the document matches any of the given queries
+ * @param {any} doc - The document to match against
+ * @param {string} path - The path to match against
+ * @param {any} ov - The queries to match against
+ * @returns {boolean}
+ */
+function matchOr(doc, path, ov) {
+	if (!validateQueryOps(ov)) {
+		return false;
+	}
+
+	return ov.some((cond) => matchCond(cond, doc));
+}
+
+/**
+ * Matches if the document does not match any of the given queries
+ * @param {any} doc - The document to match against
+ * @param {string} path - The path to match against
+ * @param {any} ov - The queries to match against
+ * @returns {boolean}
+ */
+function matchNor(doc, path, ov) {
+	if (!validateQueryOps(ov)) {
+		return false;
+	}
+
+	return !ov.some((cond) => matchCond(cond, doc));
 }
 
 /**

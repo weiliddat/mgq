@@ -8,9 +8,13 @@ import { Collection } from "mongodb";
  * @returns {Promise<Object[]>} The results of the query
  */
 export async function getMongoResults(collection, query, input) {
-	await collection.insertMany(structuredClone(input));
-	const results = await collection.find(query).project({ _id: 0 }).toArray();
-	return results;
+	try {
+		await collection.insertMany(structuredClone(input));
+		const results = await collection.find(query).project({ _id: 0 }).toArray();
+		return results;
+	} catch (error) {
+		return [];
+	}
 }
 
 export function getFilterResults(testFn, input) {

@@ -1,6 +1,5 @@
 //@ts-check
 
-import assert from "node:assert";
 import deepEqual from "fast-deep-equal";
 
 /**
@@ -217,22 +216,24 @@ function matchNor(doc, path, query) {
 	return true;
 }
 
+/**
+ * Matches if the value at the given path is not equal to the given value
+ * @param {any} doc - Document to check
+ * @param {string[]} pathParts - Path to the value
+ * @param {any} query - Value to match against
+ * @returns {boolean}
+ */
 function matchNe(doc, pathParts, query) {
 	return !matchEq(doc, pathParts, query);
 }
 
-function matchGte(doc, pathParts, query) {
-	return true;
-}
-
-function matchLt(doc, pathParts, query) {
-	return true;
-}
-
-function matchLte(doc, pathParts, query) {
-	return true;
-}
-
+/**
+ * Matches if the document does not match the given query
+ * @param {any} doc - Document to check
+ * @param {string} path - Path to the value
+ * @param {any} query - Value to match against
+ * @returns {boolean}
+ */
 function matchNot(doc, path, query) {
 	return !matchCond({ [path]: query }, doc);
 }
@@ -280,6 +281,15 @@ function validateMod(value) {
 
 function validateSize(value) {
 	return typeof value === "number";
+}
+
+/**
+ * Checks if the given value is a plain object (not null, not an array)
+ * @param {any} v - The value to check
+ * @returns {v is Record<any, any>}
+ */
+function isPlainObject(v) {
+	return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
 /**
@@ -476,10 +486,300 @@ function matchGt(doc, path, ov) {
 }
 
 /**
- * Checks if the given value is a plain object (not null, not an array)
- * @param {any} v - The value to check
- * @returns {v is Record<any, any>}
+ * Matches if the value at the given path is greater than or equal to the given value
+ * @param {any} doc - Document to check
+ * @param {string[]} path - Path to the value
+ * @param {any} ov - Value to match against
+ * @returns {boolean}
  */
-function isPlainObject(v) {
-	return typeof v === "object" && v !== null && !Array.isArray(v);
+function matchGte(doc, path, ov) {
+	if (path.length === 0) {
+		// Handle array of documents
+		if (Array.isArray(doc) && doc.some((d) => matchGte(d, path, ov))) {
+			return true;
+		}
+
+		// Handle array comparison
+		if (Array.isArray(doc) && Array.isArray(ov)) {
+			// In JavaScript, arrays can't be directly compared with >= operator
+			// Compare elements one by one
+			for (let i = 0; i < Math.max(doc.length, ov.length); i++) {
+				if (i >= ov.length) return true;
+				if (i >= doc.length) return false;
+				if (doc[i] !== ov[i]) return doc[i] > ov[i];
+			}
+			return true; // Arrays are equal
+		}
+
+		// Handle object comparison
+		if (
+			typeof doc === "object" &&
+			doc !== null &&
+			typeof ov === "object" &&
+			ov !== null &&
+			!Array.isArray(doc) &&
+			!Array.isArray(ov)
+		) {
+			if (!Object.keys(doc).length && !Object.keys(ov).length) {
+				return true;
+			}
+
+			const docKeys = Object.keys(doc);
+			const ovKeys = Object.keys(ov);
+
+			for (let i = 0; i < Math.max(docKeys.length, ovKeys.length); i++) {
+				const docKey = docKeys[i];
+				const ovKey = ovKeys[i];
+
+				if (docKey === undefined) return false;
+				if (ovKey === undefined) return true;
+				if (docKey !== ovKey) return docKey > ovKey;
+				if (docKey === ovKey) {
+					if (doc[docKey] > ov[ovKey]) return true;
+					if (doc[docKey] < ov[ovKey]) return false;
+				}
+			}
+			return true; // Objects are equal
+		}
+
+		// Handle number comparison
+		if (typeof doc === "number" && typeof ov === "number") {
+			return doc >= ov;
+		}
+
+		// Handle string comparison
+		if (typeof doc === "string" && typeof ov === "string") {
+			return doc >= ov;
+		}
+
+		// Handle null comparison
+		if (doc === null && ov === null) {
+			return true;
+		}
+
+		return false;
+	}
+
+	const key = path[0];
+	const rest = path.slice(1);
+
+	// Handle object path traversal
+	if (isPlainObject(doc) && key in doc) {
+		return matchGte(doc[key], rest, ov);
+	}
+
+	// Handle array index traversal
+	if (Array.isArray(doc) && /^\d+$/.test(key)) {
+		const idx = Number.parseInt(key);
+		if (idx < doc.length) {
+			return matchGte(doc[idx], rest, ov);
+		}
+	}
+
+	// Handle array traversal
+	if (Array.isArray(doc)) {
+		return doc.some((d) => matchGte(d, path, ov));
+	}
+
+	// Handle null comparison
+	if (ov === null) {
+		return true;
+	}
+
+	return false;
+}
+
+/**
+ * Matches if the value at the given path is less than the given value
+ * @param {any} doc - Document to check
+ * @param {string[]} path - Path to the value
+ * @param {any} ov - Value to match against
+ * @returns {boolean}
+ */
+function matchLt(doc, path, ov) {
+	if (path.length === 0) {
+		// Handle array of documents
+		if (Array.isArray(doc) && doc.some((d) => matchLt(d, path, ov))) {
+			return true;
+		}
+
+		// Handle array comparison
+		if (Array.isArray(doc) && Array.isArray(ov)) {
+			// Compare elements one by one
+			for (let i = 0; i < Math.max(doc.length, ov.length); i++) {
+				if (i >= doc.length) return true;
+				if (i >= ov.length) return false;
+				if (doc[i] !== ov[i]) return doc[i] < ov[i];
+			}
+			return false;
+		}
+
+		// Handle object comparison
+		if (
+			typeof doc === "object" &&
+			doc !== null &&
+			typeof ov === "object" &&
+			ov !== null &&
+			!Array.isArray(doc) &&
+			!Array.isArray(ov)
+		) {
+			if (Object.keys(doc).length === 0 && Object.keys(ov).length === 0) {
+				return false;
+			}
+
+			const docKeys = Object.keys(doc);
+			const ovKeys = Object.keys(ov);
+
+			for (let i = 0; i < Math.max(docKeys.length, ovKeys.length); i++) {
+				const docKey = docKeys[i];
+				const ovKey = ovKeys[i];
+
+				if (docKey === undefined) return true;
+				if (ovKey === undefined) return false;
+				if (docKey !== ovKey) return docKey < ovKey;
+				if (docKey === ovKey) {
+					if (doc[docKey] > ov[ovKey]) return false;
+					if (doc[docKey] < ov[ovKey]) return true;
+				}
+			}
+			return false;
+		}
+
+		// Handle number comparison
+		if (typeof doc === "number" && typeof ov === "number") {
+			return doc < ov;
+		}
+
+		// Handle string comparison
+		if (typeof doc === "string" && typeof ov === "string") {
+			return doc < ov;
+		}
+
+		return false;
+	}
+
+	const key = path[0];
+	const rest = path.slice(1);
+
+	// Handle object path traversal
+	if (isPlainObject(doc) && key in doc) {
+		return matchLt(doc[key], rest, ov);
+	}
+
+	// Handle array index traversal
+	if (Array.isArray(doc) && /^\d+$/.test(key)) {
+		const idx = Number.parseInt(key);
+		if (idx < doc.length) {
+			return matchLt(doc[idx], rest, ov);
+		}
+	}
+
+	// Handle array traversal
+	if (Array.isArray(doc)) {
+		return doc.some((d) => matchLt(d, path, ov));
+	}
+
+	return false;
+}
+
+/**
+ * Matches if the value at the given path is less than or equal to the given value
+ * @param {any} doc - Document to check
+ * @param {string[]} path - Path to the value
+ * @param {any} ov - Value to match against
+ * @returns {boolean}
+ */
+function matchLte(doc, path, ov) {
+	if (path.length === 0) {
+		// Handle array of documents
+		if (Array.isArray(doc) && doc.some((d) => matchLte(d, path, ov))) {
+			return true;
+		}
+
+		// Handle array comparison
+		if (Array.isArray(doc) && Array.isArray(ov)) {
+			// Compare elements one by one since JS doesn't support direct array comparison
+			for (let i = 0; i < Math.max(doc.length, ov.length); i++) {
+				if (i >= doc.length) return true;
+				if (i >= ov.length) return false;
+				if (doc[i] !== ov[i]) return doc[i] < ov[i];
+			}
+			return true;
+		}
+
+		// Handle object comparison
+		if (
+			typeof doc === "object" &&
+			doc !== null &&
+			typeof ov === "object" &&
+			ov !== null &&
+			!Array.isArray(doc) &&
+			!Array.isArray(ov)
+		) {
+			if (!Object.keys(doc).length && !Object.keys(ov).length) {
+				return true;
+			}
+
+			const docKeys = Object.keys(doc);
+			const ovKeys = Object.keys(ov);
+
+			for (let i = 0; i < Math.max(docKeys.length, ovKeys.length); i++) {
+				const docKey = docKeys[i];
+				const ovKey = ovKeys[i];
+
+				if (docKey === undefined) return true;
+				if (ovKey === undefined) return false;
+				if (docKey !== ovKey) return docKey < ovKey;
+				if (docKey === ovKey) {
+					if (doc[docKey] < ov[ovKey]) return true;
+					if (doc[docKey] > ov[ovKey]) return false;
+				}
+			}
+			return true;
+		}
+
+		// Handle number comparison
+		if (typeof doc === "number" && typeof ov === "number") {
+			return doc <= ov;
+		}
+
+		// Handle string comparison
+		if (typeof doc === "string" && typeof ov === "string") {
+			return doc <= ov;
+		}
+
+		// Handle null comparison
+		if (doc === null && ov === null) {
+			return true;
+		}
+
+		return false;
+	}
+
+	const key = path[0];
+	const rest = path.slice(1);
+
+	// Handle object path traversal
+	if (isPlainObject(doc) && key in doc) {
+		return matchLte(doc[key], rest, ov);
+	}
+
+	// Handle array index traversal
+	if (Array.isArray(doc) && /^\d+$/.test(key)) {
+		const idx = Number.parseInt(key);
+		if (idx < doc.length) {
+			return matchLte(doc[idx], rest, ov);
+		}
+	}
+
+	// Handle array traversal
+	if (Array.isArray(doc)) {
+		return doc.some((d) => matchLte(d, path, ov));
+	}
+
+	if (ov === null) {
+		return true;
+	}
+
+	return false;
 }

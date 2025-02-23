@@ -10,9 +10,9 @@ This includes traversal across nested dicts and lists, None and field-presence/a
 JavaScript port of [mgqpy](https://pypi.org/project/mgqpy/).
 
 ```js
-import { query } from "mgq";
+import { Query } from "mgq";
 
-const predicate = query({ "foo.bar": { $gt: 1 } });
+const predicate = Query({ "foo.bar": { $gt: 1 } });
 
 const inputs = [
   { foo: [{ bar: [1, 2] }] },

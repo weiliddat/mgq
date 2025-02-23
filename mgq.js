@@ -227,14 +227,6 @@ function checkAllExp(expOrOv) {
 }
 
 /**
- * stub undefined functions
- */
-
-function matchAll(doc, pathParts, query) {
-	return true;
-}
-
-/**
  * Validates query operators like $and, $or, $nor
  * @param {any} query - The query to validate
  * @returns {boolean}
@@ -258,7 +250,35 @@ function validateInNin(value) {
  * @returns {boolean}
  */
 function validateAll(value) {
-	return Array.isArray(value);
+	const isArray = Array.isArray(value);
+
+	if (isArray) {
+		if (value.length === 0) {
+			return true;
+		}
+
+		if (
+			value.every(
+				(v) =>
+					isPlainObject(v) && Object.keys(v).some((k) => k.startsWith("$")),
+			)
+		) {
+			return validateAllElemMatch(value);
+		}
+	}
+
+	return isArray;
+}
+
+/**
+ * Validates $all operator with $elemMatch
+ * @param {any[]} ov - The value to validate
+ * @returns {boolean}
+ */
+function validateAllElemMatch(ov) {
+	return ov.every(
+		(o) => typeof o === "object" && o !== null && "$elemMatch" in o,
+	);
 }
 
 /**
@@ -1002,8 +1022,61 @@ function matchSize(doc, path, ov) {
 				return matchSize(doc[idx], rest, ov);
 			}
 		}
-
 		return doc.some((d) => matchSize(d, path, ov));
+	}
+
+	return false;
+}
+
+/**
+ * Matches if the value at the given path matches the queried $all
+ * @param {any} doc - Document to check
+ * @param {string[]} path - Path to the value
+ * @param {any} ov - Value to match against
+ * @returns {boolean}
+ */
+function matchAll(doc, path, ov) {
+	if (!validateAll(ov)) {
+		return false;
+	}
+
+	if (ov.length === 0) {
+		return false;
+	}
+
+	if (validateAllElemMatch(ov)) {
+		const elem_match_query = {
+			$and: ov.map((o) => ({ [path.join(".")]: o })),
+		};
+		return matchCond(elem_match_query, doc);
+	}
+
+	if (path.length === 0) {
+		if (!Array.isArray(doc)) {
+			return false;
+		}
+
+		return ov.every(
+			(o) => doc.find((dv) => deepEqual(dv, o)) || deepEqual(doc, o),
+		);
+	}
+
+	const key = path[0];
+	const rest = path.slice(1);
+
+	if (typeof doc === "object" && doc !== null && key in doc) {
+		return matchAll(doc[key], rest, ov);
+	}
+
+	if (Array.isArray(doc) && /^\d+$/.test(key)) {
+		const idx = Number.parseInt(key);
+		if (idx < doc.length) {
+			return matchAll(doc[idx], rest, ov);
+		}
+	}
+
+	if (Array.isArray(doc)) {
+		return doc.some((d) => matchAll(d, path, ov));
 	}
 
 	return false;

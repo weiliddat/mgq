@@ -78,12 +78,20 @@ describe("Query Validation", () => {
 		assert.doesNotThrow(() =>
 			Query({ foo: { $all: ["bar", "baz"] } }).validate(),
 		);
+		assert.doesNotThrow(() => Query({ foo: { $all: [] } }).validate());
+		assert.doesNotThrow(() =>
+			Query({ foo: { $all: [{ $elemMatch: { foo: "bar" } }] } }).validate(),
+		);
 		assert.throws(
 			() => Query({ foo: { $all: "not-a-list" } }).validate(),
 			TypeError,
 		);
 		assert.throws(
 			() => Query({ foo: { $all: { foo: "bar" } } }).validate(),
+			TypeError,
+		);
+		assert.throws(
+			() => Query({ foo: { $all: [{ $and: [{ foo: "bar" }] }] } }).validate(),
 			TypeError,
 		);
 	});

@@ -1,6 +1,6 @@
 {
 	"name": "mgq",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "[MongoDB query](https://www.mongodb.com/docs/manual/reference/operator/query/) as a predicate function.",
 	"type": "module",
 	"main": "./mgq.js",
@@ -15,7 +15,13 @@
 		"type": "git",
 		"url": "git+https://github.com/weiliddat/mgq.git"
 	},
-	"keywords": ["mongo", "mongodb", "query", "filter", "sift"],
+	"keywords": [
+		"mongo",
+		"mongodb",
+		"query",
+		"filter",
+		"sift"
+	],
 	"author": "Chiawei Ong",
 	"license": "MIT",
 	"bugs": {

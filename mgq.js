@@ -230,10 +230,6 @@ function checkAllExp(expOrOv) {
  * stub undefined functions
  */
 
-function matchRegex(doc, pathParts, query) {
-	return true;
-}
-
 function matchMod(doc, pathParts, query) {
 	return true;
 }
@@ -301,12 +297,19 @@ function validateSize(value) {
 }
 
 /**
- * Checks if the given value is a plain object (not null, not an array)
+ * Checks if the given value is a plain object
+ * (not null, not an array, not a regex, not a date)
  * @param {any} v - The value to check
  * @returns {v is Record<any, any>}
  */
 function isPlainObject(v) {
-	return typeof v === "object" && v !== null && !Array.isArray(v);
+	return (
+		typeof v === "object" &&
+		v !== null &&
+		!Array.isArray(v) &&
+		!(v instanceof RegExp) &&
+		!(v instanceof Date)
+	);
 }
 
 /**
@@ -414,7 +417,7 @@ function matchEq(doc, path, ov) {
 		return doc.some((d) => matchEq(d, path, ov));
 	}
 
-	if (ov === null || ov === undefined) {
+	if (isNil(ov)) {
 		return true;
 	}
 
@@ -844,6 +847,58 @@ function matchLte(doc, path, ov) {
 
 	if (isNil(ov)) {
 		return true;
+	}
+
+	return false;
+}
+
+/**
+ * Matches if the value at the given path matches the queried regex
+ * @param {any} doc - Document to check
+ * @param {string[]} path - Path to the value
+ * @param {any} ov - Value to match against
+ * @returns {boolean}
+ */
+function matchRegex(doc, path, ov) {
+	if (path.length === 0) {
+		if (Array.isArray(doc) && doc.some((d) => matchRegex(d, path, ov))) {
+			return true;
+		}
+
+		if (typeof doc !== "string") {
+			return false;
+		}
+
+		let flags = "";
+		if (ov.$options.includes("i")) {
+			flags += "i";
+		}
+		if (ov.$options.includes("m")) {
+			flags += "m";
+		}
+		if (ov.$options.includes("s")) {
+			flags += "s";
+		}
+
+		const matcher = new RegExp(ov.$regex, flags);
+		return matcher.test(doc);
+	}
+
+	const key = path[0];
+	const rest = path.slice(1);
+
+	if (typeof doc === "object" && doc !== null && key in doc) {
+		return matchRegex(doc[key], rest, ov);
+	}
+
+	if (Array.isArray(doc)) {
+		if (/^\d+$/.test(key)) {
+			const idx = Number.parseInt(key);
+			if (idx < doc.length) {
+				return matchRegex(doc[idx], rest, ov);
+			}
+		}
+		return doc.some((d) => matchRegex(d, path, ov));
 	}
 
 	return false;

@@ -230,15 +230,7 @@ function checkAllExp(expOrOv) {
  * stub undefined functions
  */
 
-function matchMod(doc, pathParts, query) {
-	return true;
-}
-
 function matchAll(doc, pathParts, query) {
-	return true;
-}
-
-function matchSize(doc, pathParts, query) {
 	return true;
 }
 
@@ -402,14 +394,13 @@ function matchEq(doc, path, ov) {
 		return matchEq(doc[key], rest, ov);
 	}
 
-	if (Array.isArray(doc) && /^\d+$/.test(key)) {
-		const idx = Number.parseInt(key);
-		if (idx < doc.length) {
-			return matchEq(doc[idx], rest, ov);
-		}
-	}
-
 	if (Array.isArray(doc)) {
+		if (/^\d+$/.test(key)) {
+			const idx = Number.parseInt(key);
+			if (idx < doc.length) {
+				return matchEq(doc[idx], rest, ov);
+			}
+		}
 		return doc.some((d) => matchEq(d, path, ov));
 	}
 
@@ -556,14 +547,13 @@ function matchGt(doc, path, ov) {
 		return matchGt(doc[key], rest, ov);
 	}
 
-	if (Array.isArray(doc) && /^\d+$/.test(key)) {
-		const idx = Number.parseInt(key);
-		if (idx < doc.length) {
-			return matchGt(doc[idx], rest, ov);
-		}
-	}
-
 	if (Array.isArray(doc)) {
+		if (/^\d+$/.test(key)) {
+			const idx = Number.parseInt(key);
+			if (idx < doc.length) {
+				return matchGt(doc[idx], rest, ov);
+			}
+		}
 		return doc.some((d) => matchGt(d, path, ov));
 	}
 
@@ -646,16 +636,14 @@ function matchGte(doc, path, ov) {
 		return matchGte(doc[key], rest, ov);
 	}
 
-	// Handle array index traversal
-	if (Array.isArray(doc) && /^\d+$/.test(key)) {
-		const idx = Number.parseInt(key);
-		if (idx < doc.length) {
-			return matchGte(doc[idx], rest, ov);
-		}
-	}
-
 	// Handle array traversal
 	if (Array.isArray(doc)) {
+		if (/^\d+$/.test(key)) {
+			const idx = Number.parseInt(key);
+			if (idx < doc.length) {
+				return matchGte(doc[idx], rest, ov);
+			}
+		}
 		return doc.some((d) => matchGte(d, path, ov));
 	}
 
@@ -737,16 +725,14 @@ function matchLt(doc, path, ov) {
 		return matchLt(doc[key], rest, ov);
 	}
 
-	// Handle array index traversal
-	if (Array.isArray(doc) && /^\d+$/.test(key)) {
-		const idx = Number.parseInt(key);
-		if (idx < doc.length) {
-			return matchLt(doc[idx], rest, ov);
-		}
-	}
-
 	// Handle array traversal
 	if (Array.isArray(doc)) {
+		if (/^\d+$/.test(key)) {
+			const idx = Number.parseInt(key);
+			if (idx < doc.length) {
+				return matchLt(doc[idx], rest, ov);
+			}
+		}
 		return doc.some((d) => matchLt(d, path, ov));
 	}
 
@@ -828,16 +814,14 @@ function matchLte(doc, path, ov) {
 		return matchLte(doc[key], rest, ov);
 	}
 
-	// Handle array index traversal
-	if (Array.isArray(doc) && /^\d+$/.test(key)) {
-		const idx = Number.parseInt(key);
-		if (idx < doc.length) {
-			return matchLte(doc[idx], rest, ov);
-		}
-	}
-
 	// Handle array traversal
 	if (Array.isArray(doc)) {
+		if (/^\d+$/.test(key)) {
+			const idx = Number.parseInt(key);
+			if (idx < doc.length) {
+				return matchLte(doc[idx], rest, ov);
+			}
+		}
 		return doc.some((d) => matchLte(d, path, ov));
 	}
 
@@ -923,15 +907,103 @@ function matchElemMatch(doc, path, ov) {
 		return matchElemMatch(doc[key], rest, ov);
 	}
 
-	if (Array.isArray(doc) && /^\d+$/.test(key)) {
-		const idx = Number.parseInt(key);
-		if (idx < doc.length) {
-			return matchElemMatch(doc[idx], rest, ov);
+	if (Array.isArray(doc)) {
+		if (/^\d+$/.test(key)) {
+			const idx = Number.parseInt(key);
+			if (idx < doc.length) {
+				return matchElemMatch(doc[idx], rest, ov);
+			}
 		}
+		return doc.some((d) => matchElemMatch(d, path, ov));
+	}
+
+	return false;
+}
+
+/**
+ * Matches if the value at the given path matches the queried divisor and remainder
+ * @param {any} doc - Document to check
+ * @param {string[]} path - Path to the value
+ * @param {any} ov - Value to match against
+ * @returns {boolean}
+ */
+function matchMod(doc, path, ov) {
+	if (!validateMod(ov)) {
+		return false;
+	}
+
+	if (path.length === 0) {
+		if (Array.isArray(doc) && doc.some((d) => matchMod(d, path, ov))) {
+			return true;
+		}
+
+		if (typeof doc !== "number") {
+			return false;
+		}
+
+		const divisor = Math.floor(ov[0]);
+		const expected_remainder = Math.floor(ov[1]);
+		const doc_remainder = Math.floor(doc % divisor);
+
+		return doc_remainder === expected_remainder;
+	}
+
+	const key = path[0];
+	const rest = path.slice(1);
+
+	if (typeof doc === "object" && doc !== null && key in doc) {
+		return matchMod(doc[key], rest, ov);
 	}
 
 	if (Array.isArray(doc)) {
-		return doc.some((d) => matchElemMatch(d, path, ov));
+		if (/^\d+$/.test(key)) {
+			const idx = Number.parseInt(key);
+			if (idx < doc.length) {
+				return matchMod(doc[idx], rest, ov);
+			}
+		}
+		return doc.some((d) => matchMod(d, path, ov));
+	}
+
+	return false;
+}
+
+/**
+ * Matches if the value at the given path matches the queried size
+ * @param {any} doc - Document to check
+ * @param {string[]} path - Path to the value
+ * @param {any} ov - Value to match against
+ * @returns {boolean}
+ */
+function matchSize(doc, path, ov) {
+	if (!validateSize(ov)) {
+		return false;
+	}
+
+	if (path.length === 0) {
+		if (!Array.isArray(doc)) {
+			return false;
+		}
+
+		return doc.length === Number.parseInt(ov);
+	}
+
+	const key = path[0];
+	const rest = path.slice(1);
+
+	if (typeof doc === "object" && doc !== null && key in doc) {
+		return matchSize(doc[key], rest, ov);
+	}
+
+	if (Array.isArray(doc)) {
+		if (/^\d+$/.test(key)) {
+			const idx = Number.parseInt(key);
+			if (idx < doc.length) {
+				return matchSize(doc[idx], rest, ov);
+			}
+		}
+
+		return doc.some((d) => matchSize(d, path, ov));
 	}
 
 	return false;

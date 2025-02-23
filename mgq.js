@@ -238,10 +238,6 @@ function matchAll(doc, pathParts, query) {
 	return true;
 }
 
-function matchElemMatch(doc, pathParts, query) {
-	return true;
-}
-
 function matchSize(doc, pathParts, query) {
 	return true;
 }
@@ -899,6 +895,43 @@ function matchRegex(doc, path, ov) {
 			}
 		}
 		return doc.some((d) => matchRegex(d, path, ov));
+	}
+
+	return false;
+}
+
+/**
+ * Matches if items in the value (array) at the given path match the queried $elemMatch
+ * @param {any} doc - Document to check
+ * @param {string[]} path - Path to the value
+ * @param {any} ov - Value to match against
+ * @returns {boolean}
+ */
+function matchElemMatch(doc, path, ov) {
+	if (path.length === 0) {
+		if (!Array.isArray(doc)) {
+			return false;
+		}
+
+		return doc.some((d) => matchCond(ov, d));
+	}
+
+	const key = path[0];
+	const rest = path.slice(1);
+
+	if (typeof doc === "object" && doc !== null && key in doc) {
+		return matchElemMatch(doc[key], rest, ov);
+	}
+
+	if (Array.isArray(doc) && /^\d+$/.test(key)) {
+		const idx = Number.parseInt(key);
+		if (idx < doc.length) {
+			return matchElemMatch(doc[idx], rest, ov);
+		}
+	}
+
+	if (Array.isArray(doc)) {
+		return doc.some((d) => matchElemMatch(d, path, ov));
 	}
 
 	return false;

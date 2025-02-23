@@ -110,6 +110,14 @@ const testCases = [
 		],
 		expected: [{}, { foo: "bar" }, { foo: { bar: null } }],
 	},
+	{
+		name: "$in with invalid query",
+		query: {
+			foo: { $in: "not-a-list" },
+		},
+		input: [{ foo: "bar" }],
+		expected: [],
+	},
 ];
 
 /** @type {MongoMemoryServer} */

@@ -1,5 +1,7 @@
 # mgq
 
+[![codecov](https://codecov.io/github/weiliddat/mgq/graph/badge.svg?token=FC3NO3ohgU)](https://codecov.io/github/weiliddat/mgq)
+
 [MongoDB query](https://www.mongodb.com/docs/manual/reference/operator/query/) as a predicate function.
 
 This aims to be consistent with how MongoDB's matches documents.

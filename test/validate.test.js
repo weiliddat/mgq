@@ -116,6 +116,13 @@ describe("Query Validation", () => {
 			TypeError,
 		);
 	});
+
+	test("$where validation", () => {
+		assert.doesNotThrow(() => Query({ $where: () => {} }).validate());
+		assert.doesNotThrow(() => Query({ $where: "return true" }).validate());
+		assert.throws(() => Query({ $where: {} }).validate(), TypeError);
+		assert.throws(() => Query({ $where: 123 }).validate(), TypeError);
+	});
 });
 
 test("validate should return query", () => {

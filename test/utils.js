@@ -10,9 +10,13 @@ import { Collection } from "mongodb";
 export async function getMongoResults(collection, query, input) {
 	try {
 		await collection.insertMany(structuredClone(input));
-		const results = await collection.find(query).project({ _id: 0 }).toArray();
+		const results = await collection
+			.find(query, { serializeFunctions: true })
+			.project({ _id: 0 })
+			.toArray();
 		return results;
 	} catch (error) {
+		console.error(error);
 		return [];
 	}
 }

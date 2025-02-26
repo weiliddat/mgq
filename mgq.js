@@ -49,7 +49,7 @@ const condOps = new Set([
 ]);
 
 // Set of query operators
-const queryOps = new Set(["$and", "$or", "$nor"]);
+const queryOps = new Set(["$and", "$or", "$nor", "$where"]);
 
 /**
  * Creates a new Query object
@@ -96,6 +96,9 @@ function matchCond(query, doc) {
 			}
 			if (path === "$nor") {
 				results.push(matchNor(doc, path, query.$nor));
+			}
+			if (path === "$where") {
+				results.push(matchWhere(doc, path, query.$where));
 			}
 		} else {
 			const expOrOv = query[path];
@@ -182,7 +185,11 @@ function validate(query) {
 					throw new TypeError("$nor operator value must be an array");
 				}
 			}
-
+			if (path === "$where" && !validateWhere(query.$where)) {
+				throw new TypeError(
+					"$where operator value must be a function or a string",
+				);
+			}
 			if (Array.isArray(query[path])) {
 				for (const cond of query[path]) {
 					validate(cond);
@@ -302,6 +309,15 @@ function validateMod(value) {
  */
 function validateSize(value) {
 	return typeof value === "number";
+}
+
+/**
+ * Validates $where operator
+ * @param {any} value - The value to validate
+ * @returns {boolean}
+ */
+function validateWhere(value) {
+	return typeof value === "function" || typeof value === "string";
 }
 
 /**
@@ -1077,6 +1093,30 @@ function matchAll(doc, path, ov) {
 
 	if (Array.isArray(doc)) {
 		return doc.some((d) => matchAll(d, path, ov));
+	}
+
+	return false;
+}
+
+/**
+ * Matches if the value at the given path matches the queried $where
+ * @param {any} doc - Document to check
+ * @param {string} path - Path to the value
+ * @param {any} ov - Value to match against
+ * @returns {boolean}
+ */
+function matchWhere(doc, path, ov) {
+	if (!validateWhere(ov)) {
+		return false;
+	}
+
+	if (typeof ov === "function") {
+		return ov.call(doc);
+	}
+
+	if (typeof ov === "string") {
+		const fn = new Function(ov);
+		return fn.call(doc);
 	}
 
 	return false;

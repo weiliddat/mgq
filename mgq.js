@@ -185,7 +185,11 @@ function validate(query) {
 					throw new TypeError("$nor operator value must be an array");
 				}
 			}
-
+			if (path === "$where" && !validateWhere(query.$where)) {
+				throw new TypeError(
+					"$where operator value must be a function or a string",
+				);
+			}
 			if (Array.isArray(query[path])) {
 				for (const cond of query[path]) {
 					validate(cond);
@@ -212,11 +216,6 @@ function validate(query) {
 				}
 				if ("$size" in exp && !validateSize(exp.$size)) {
 					throw new TypeError("$size operator value must be a number");
-				}
-				if ("$where" in exp && !validateWhere(exp.$where)) {
-					throw new TypeError(
-						"$where operator value must be a function or a string",
-					);
 				}
 			}
 		}

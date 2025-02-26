@@ -1,6 +1,6 @@
 {
 	"name": "mgq",
-	"version": "1.0.1",
+	"version": "1.1.0",
 	"description": "[MongoDB query](https://www.mongodb.com/docs/manual/reference/operator/query/) as a predicate function.",
 	"type": "module",
 	"main": "./mgq.js",

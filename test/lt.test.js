@@ -5,6 +5,8 @@ import { getFilterResults, getMongoResults } from "./utils.js";
 import { Collection, MongoClient } from "mongodb";
 import { MongoMemoryServer } from "mongodb-memory-server";
 
+const now = new Date("2026-03-06T00:00:00.000Z");
+
 const testCases = [
 	{
 		name: "$lt number",
@@ -55,6 +57,18 @@ const testCases = [
 			{ foo: null },
 		],
 		expected: [{ foo: "0" }],
+	},
+	{
+		name: "$lt date",
+		query: { foo: { $lt: now } },
+		input: [
+			{ foo: new Date("2026-03-01T00:00:00.000Z") },
+			{ foo: new Date("2026-03-06T00:00:00.000Z") },
+			{ foo: new Date("2026-03-10T00:00:00.000Z") },
+			{ foo: null },
+			{},
+		],
+		expected: [{ foo: new Date("2026-03-01T00:00:00.000Z") }],
 	},
 	{
 		name: "$lt none",

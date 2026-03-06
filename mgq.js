@@ -346,6 +346,15 @@ function isNil(v) {
 }
 
 /**
+ * Checks if the given value is a Date
+ * @param {any} v - The value to check
+ * @returns {v is Date}
+ */
+function isDate(v) {
+	return v instanceof Date;
+}
+
+/**
  * Matches if the document matches all the given queries
  * @param {any} doc - The document to match against
  * @param {string} path - The path to match against
@@ -563,6 +572,11 @@ function matchGt(doc, path, ov) {
 			return false;
 		}
 
+		// Handle date comparison
+		if (isDate(doc) && isDate(ov)) {
+			return doc.getTime() > ov.getTime();
+		}
+
 		// Handle number comparison
 		if (typeof doc === "number" && typeof ov === "number") {
 			return doc > ov;
@@ -644,6 +658,11 @@ function matchGte(doc, path, ov) {
 				}
 			}
 			return true; // Objects are equal
+		}
+
+		// Handle date comparison
+		if (isDate(doc) && isDate(ov)) {
+			return doc.getTime() >= ov.getTime();
 		}
 
 		// Handle number comparison
@@ -740,6 +759,11 @@ function matchLt(doc, path, ov) {
 			return false;
 		}
 
+		// Handle date comparison
+		if (isDate(doc) && isDate(ov)) {
+			return doc.getTime() < ov.getTime();
+		}
+
 		// Handle number comparison
 		if (typeof doc === "number" && typeof ov === "number") {
 			return doc < ov;
@@ -822,6 +846,11 @@ function matchLte(doc, path, ov) {
 				}
 			}
 			return true;
+		}
+
+		// Handle date comparison
+		if (isDate(doc) && isDate(ov)) {
+			return doc.getTime() <= ov.getTime();
 		}
 
 		// Handle number comparison
